@@ -300,10 +300,20 @@ namespace SuperSocket.Tests.WebSocket
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.NoDelay = true;
                 var endPoint = hostConfigurator.GetServerEndPoint();
-                await socket.ConnectAsync(endPoint);                
+                await socket.ConnectAsync(endPoint);
                 Assert.True(socket.Connected);
+                Assert.False(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+
+                /* enable tcp keep alive
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 1);
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 1);
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 1);
+                */
+
                 await Task.Delay(1000 * 5);
                 //Assert.False(socket.Connected);
+                Assert.True(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+
                 await server.StopAsync();
             }
         }
@@ -336,7 +346,9 @@ namespace SuperSocket.Tests.WebSocket
 
                         websocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
 
+                        var startConnectTime = DateTime.Now;
                         await websocket.ConnectAsync(new Uri($"{hostConfigurator.WebSocketSchema}://localhost:{hostConfigurator.Listener.Port}"), CancellationToken.None);
+                        OutputHelper.WriteLine($"Took {DateTime.Now.Subtract(startConnectTime)} to establish the connection from client side.");
 
                         Assert.Equal(WebSocketState.Open, websocket.State);
 
@@ -394,7 +406,9 @@ namespace SuperSocket.Tests.WebSocket
 
                         websocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
 
+                        var startConnectTime = DateTime.Now;
                         await websocket.ConnectAsync(new Uri($"{hostConfigurator.WebSocketSchema}://localhost:{hostConfigurator.Listener.Port}"), CancellationToken.None);
+                        OutputHelper.WriteLine($"Took {DateTime.Now.Subtract(startConnectTime)} to establish the connection from client side.");
 
                         if (websocket.State != WebSocketState.Open)
                         {
@@ -478,7 +492,9 @@ namespace SuperSocket.Tests.WebSocket
 
                         websocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
 
+                        var startConnectTime = DateTime.Now;
                         await websocket.ConnectAsync(new Uri($"{hostConfigurator.WebSocketSchema}://localhost:{hostConfigurator.Listener.Port}"), CancellationToken.None);
+                        OutputHelper.WriteLine($"Took {DateTime.Now.Subtract(startConnectTime)} to establish the connection from client side.");
 
                         if (websocket.State != WebSocketState.Open)
                         {
@@ -575,7 +591,9 @@ namespace SuperSocket.Tests.WebSocket
 
                         websocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
 
+                        var startConnectTime = DateTime.Now;
                         await websocket.ConnectAsync(new Uri($"{hostConfigurator.WebSocketSchema}://localhost:{hostConfigurator.Listener.Port}"), CancellationToken.None);
+                        OutputHelper.WriteLine($"Took {DateTime.Now.Subtract(startConnectTime)} to establish the connection from client side.");
 
                         Assert.Equal(WebSocketState.Open, websocket.State);
 
@@ -708,7 +726,7 @@ namespace SuperSocket.Tests.WebSocket
                         commandOptions.AddCommand<MULT>();
                         commandOptions.AddCommand<SUB>();
 
-                        // register all commands in one aassembly
+                        // register all commands in one assembly
                         //commandOptions.AddCommandAssembly(typeof(SUB).GetTypeInfo().Assembly);
                     });
             }, hostConfigurator).BuildAsServer())
